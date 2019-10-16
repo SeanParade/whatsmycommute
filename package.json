@@ -17,6 +17,7 @@
   },
   "homepage": "https://github.com/SeanParade/whatsmycommute#readme",
   "dependencies": {
+    "express": "^4.17.1",
     "sass": "^1.23.0",
     "sass-loader": "^8.0.0",
     "vue": "^2.6.10",
