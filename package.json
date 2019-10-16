@@ -1,0 +1,25 @@
+{
+  "name": "whatsmycommute",
+  "version": "1.0.0",
+  "description": "Application the shows the upcoming times of the trains as well as weather",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SeanParade/whatsmycommute.git"
+  },
+  "author": "Ken",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SeanParade/whatsmycommute/issues"
+  },
+  "homepage": "https://github.com/SeanParade/whatsmycommute#readme",
+  "dependencies": {
+    "sass": "^1.23.0",
+    "sass-loader": "^8.0.0",
+    "vue": "^2.6.10",
+    "webpack": "^4.41.2"
+  }
+}
