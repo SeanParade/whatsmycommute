@@ -8,7 +8,7 @@
         <div class="col-4">
             <template v-for="(time,index) in timeUntil">
                 <span :key="time + index">
-                    {{time | formatDisplayTime}}
+                    {{time|formatDisplayTime}}
                 </span>
             </template>
         </div>    
@@ -18,7 +18,7 @@
     export default{
         name: 'list-item',
         data(){
-            return{
+            return {
                 routeNumber : '',
                 routeName : '',
                 direction : '',
@@ -27,24 +27,24 @@
         },
         computed: {
             renderOrder: function(){
-
+                return null
             }
         },
         filters: {
             formatDisplayTime: function(time){
-                return 
-                    parseInt(time) < 60 ? 
-                        time + ' min' : 
-                        Math.floor(time / 60) == 1 ? 
-                            Math.floor(time / 60) + ' hr' + (time % 60) + ' min' :
-                            Math.floor(time / 60) + ' hrs' + (time % 60) + ' min'
+                var Time = parseInt(time);
+                return Time < 60 ? 
+                    Time + ' min' :
+                    Math.floor(Time / 60) == 1 ?
+                        Math.floor(Time / 60) + ' hr' + (time % 60) + ' min':
+                        Math.floor(Time / 60) + ' hrs' + (time % 60) + ' min'
             }
         },
         created(){
             this.routeNumber = '1';
             this.routeName = 'test';
             this.direction = 'north';
-            this.timeUntil = ['10','15','20'];
+            this.timeUntil = ['100','15','20'];
         }
     }
 </script>
