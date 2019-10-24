@@ -1,5 +1,10 @@
 <template>
   <div class="hello">
+    <section>
+      <h2>Demo</h2>
+      <list-item></list-item>
+    </section>
+    <hr>
     <h1>{{ msg }}</h1>
     <p>
       For a guide and recipes on how to configure / customize this project,<br />
@@ -87,8 +92,12 @@
 </template>
 
 <script>
+import ListItem from './ListItem.vue';
 export default {
   name: "HelloWorld",
+  components: {
+    ListItem,
+  },
   props: {
     msg: String
   }
