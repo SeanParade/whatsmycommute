@@ -5,7 +5,8 @@
         </div>
         <div class="col-4">{{routeName}}</div>
         <div class="col-2">{{direction}}</div>
-        <div class="col-4">
+        <div class="col-4"> <!--Why not <div class="col-4" v-for="(time, index) in timeUntil">-->
+            <!--used template because we just want to render content inside the tag i.e. if we used div, the div element will also show up-->
             <template v-for="(time,index) in timeUntil">
                 <span :key="time + index">
                     {{time|formatDisplayTime}}
