@@ -1,29 +1,27 @@
 <template>
-    <div class="row">
-        <div class="col-2">
-            <stong>{{routeNumber}}</stong>
-        </div>
-        <div class="col-4">{{routeName}}</div>
-        <div class="col-2">{{direction}}</div>
-        <div class="col-4"> <!--Why not <div class="col-4" v-for="(time, index) in timeUntil">-->
-            <!--used template because we just want to render content inside the tag i.e. if we used div, the div element will also show up-->
-            <template v-for="(time,index) in timeUntil">
-                <span :key="time + index">
-                    {{time|formatDisplayTime}}
-                </span>
-            </template>
-        </div>    
-    </div>
+    <tr id="busDataRows">
+        <td>{{routeNumber}}</td>
+        <td>{{routeName}}</td>
+        <td>{{direction}}</td>
+        <td >
+            <span v-for="(time, index) in timeUntil" :key="index">
+                {{timeUntil[index]|formatDisplayTime}}
+            </span>
+        </td>
+    </tr>
 </template>
 <script>
     export default{
         name: 'list-item',
+        props:{
+            scheduleData: Object,
+        },
         data(){
             return {
-                routeNumber : '',
-                routeName : '',
-                direction : '',
-                timeUntil : []
+                routeNumber : this.scheduleData.routeNumber,
+                routeName : this.scheduleData.routeName,
+                direction : this.scheduleData.direction,
+                timeUntil : this.scheduleData.timeUntil
             }
         },
         computed: {
@@ -33,19 +31,27 @@
         },
         filters: {
             formatDisplayTime: function(time){
-                var Time = parseInt(time);
-                return Time < 60 ? 
-                    Time + ' min' :
-                    Math.floor(Time / 60) == 1 ?
-                        Math.floor(Time / 60) + ' hr' + (time % 60) + ' min':
-                        Math.floor(Time / 60) + ' hrs' + (time % 60) + ' min'
+                var timeValue = parseInt(time);
+                return timeValue < 60 ? 
+                    timeValue + ' min' :
+                    Math.floor(timeValue / 60) == 1 ?
+                        Math.floor(timeValue / 60) + ' hr' + (timeValue % 60) + ' min':
+                        Math.floor(timeValue / 60) + ' hrs' + (timeValue % 60) + ' min'
             }
         },
         created(){
-            this.routeNumber = '1';
-            this.routeName = 'test';
-            this.direction = 'north';
-            this.timeUntil = ['100','15','20'];
         }
     }
 </script>
+<style>
+    #busDataRows td{
+        border-style: ridge;
+    }
+    #busDataRows td:nth-child(n+4){
+        text-align: left;
+    }
+    #busDataRows td span{
+        display: inline-block;
+        padding: 5px 10px 5px 10px;
+    }
+</style>
