@@ -1,34 +1,26 @@
 <template>
-  <div class="hello">
-      <section>
-        <list></list>
-      </section>
+  <div>
+    <b-container>
+      <b-row></b-row>
+      <b-row>
+        <b-col sm="2"></b-col>
+        <b-col sm="8"><list></list></b-col>
+        <b-col sm="2"><weather></weather></b-col>
+      </b-row>
+    </b-container>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
 import list from '@/components/list.vue';
+import weather from '@/components/weather.vue';
 
 export default {
   name: "home",
   components: {
-    list
+    list,
+    weather
   }
 };
 </script>
-
-h3 {
-  margin: 40px 0 0;
-}
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-a {
-  color: #42b983;
-}
