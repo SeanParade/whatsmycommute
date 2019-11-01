@@ -1,7 +1,16 @@
 <template>
   <div>
     <b-container>
-      <b-row></b-row>
+      <b-row>
+          <toggle-switch
+          :options="myOptions"
+          @change="updateMap($event.value)" 
+          @selected="selectedMethod()" 
+          v-model="selectedMapOption" 
+          :value="selectedMapOption" 
+          :group="switchGroup"
+          /> 
+      </b-row>
       <b-row>
         <b-col sm="2"></b-col>
         <b-col sm="8"><list></list></b-col>
@@ -24,3 +33,6 @@ export default {
   }
 };
 </script>
+<style>
+
+</style>

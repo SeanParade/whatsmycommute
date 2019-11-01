@@ -33,9 +33,15 @@
         },
         methods:{
             getWeather: function(){
-                axios.get('http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units=metric')
+                //get C or D from toggle Switch
+                //this.tempButton 
+                //this.tempButton === C ? this.Unit = 'metric' : this.unit = 'imperial'
+                //var URL = 'http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units='+this.Unit
+
+                axios.get('http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units=metric') //URL
                 .then(resp => {
-                    this.currentTemperature = resp.data.main.temp + '°C';
+                    this.currentTemperature = 
+                    resp.data.main.temp + '°C'; // //this.tempButton === C ? 'C' : 'F'
                     this.weatherDescription = resp.data.weather[0].description;
                     this.weather = resp.data.weather[0].main;
                     this.iconCode = resp.data.weather[0].icon;
@@ -58,18 +64,30 @@
         width: 100%;
         margin-left: 0;
         margin-right: 0;
-        border-bottom: 1px solid blue;
+        background-color: #bfd8ff;
+        border-right: 0.5px solid black
     }
-    #weatherContainer .row span{
-        width: 100%;
-        display: inline-block;
-        padding: 2px 4px 2px 4px;
+    #weatherContainer .row:nth-child(3){
+        margin-left: 0px;
+        margin-right: 0px;
+        padding: 0 0 0 0;
+        background-color:  #bfd8ff;
+        border-right: 0.5px solid black;
     }
-
-
-    img{
+    #weatherContainer .row:first-child span{
+        font-size: 14px;
         display: block;
         margin-left: auto;
         margin-right: auto;
+    }
+    #weatherContainer .row:last-child span {
+        font-size: 12px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+    img{
+        display: block;
+        margin: auto;
     }
 </style>
