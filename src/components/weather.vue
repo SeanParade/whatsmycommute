@@ -32,7 +32,6 @@
                 //See API for Weather @ https://openweathermap.org/weather-conditions
                 currentTemperature: [],
                 weatherDescription: '',
-                weather: '',
                 iconCode: '',
                 imgSrc: '',
                 switchValue: '',
@@ -47,9 +46,9 @@
             getWeather: function(event){
                 //During initial load, there is no event so Unit takes default value. On change, toggle switch returns event value = true or false depending on switch state
                 event ? 
-                    event.value ? 
-                        this.Unit = 'metric':
-                        this.Unit = 'imperial' 
+                    this.Unit = event.value ? 
+                        'metric':
+                        'imperial' 
                     : 
                     "";
 
@@ -61,13 +60,11 @@
                         resp.data.main.temp + '°C':
                         resp.data.main.temp + '°F'
                     this.weatherDescription = resp.data.weather[0].description;
-                    this.weather = resp.data.weather[0].main;
                     this.iconCode = resp.data.weather[0].icon;
                     this.imgSrc = 'http://openweathermap.org/img/wn/'+this.iconCode+'@2x.png'
+                }).catch((error) => {
+                    console.log(error.dresponse.data.message)
                 })
-            },
-            getTempUnit : function (event) {
-                this.buttonUnit = event.value;
             }
         }
     }
