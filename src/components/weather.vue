@@ -2,7 +2,16 @@
     <div id="weatherRoot">
         <b-container id="weatherContainer" class="container-fluid">
             <b-row>
-                <span>Current Weather</span>
+                <span>Current Weather
+                    <toggle-button
+                    :value="true" 
+                    color="#82C7EB"
+                    :sync="false"
+                    :disabled="false"
+                    :labels="{checked: '°C', unchecked: '°F'}"
+                    @change="getWeather"
+                    />
+                </span>
             </b-row>
             <b-row>
                 <img :src="imgSrc">
@@ -25,29 +34,41 @@
                 weatherDescription: '',
                 weather: '',
                 iconCode: '',
-                imgSrc: ''
+                imgSrc: '',
+                switchValue: '',
+                Unit: 'metric',
+                URL: ''
             }
         },
         mounted(){
             this.getWeather();
         },
         methods:{
-            getWeather: function(){
-                //get C or D from toggle Switch
-                //this.tempButton 
-                //this.tempButton === C ? this.Unit = 'metric' : this.unit = 'imperial'
-                //var URL = 'http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units='+this.Unit
+            getWeather: function(event){
+                //During initial load, there is no event so Unit takes default value. On change, toggle switch returns event value = true or false depending on switch state
+                event ? 
+                    event.value ? 
+                        this.Unit = 'metric':
+                        this.Unit = 'imperial' 
+                    : 
+                    "";
 
-                axios.get('http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units=metric') //URL
+                this.URL = 'http://api.openweathermap.org/data/2.5/weather?id=6167863&APPID=84acadfd44883a87e5ca97bcf469cd0b&units='+this.Unit
+
+                axios.get(this.URL)
                 .then(resp => {
-                    this.currentTemperature = 
-                    resp.data.main.temp + '°C'; // //this.tempButton === C ? 'C' : 'F'
+                    this.currentTemperature = this.Unit === 'metric' ?
+                        resp.data.main.temp + '°C':
+                        resp.data.main.temp + '°F'
                     this.weatherDescription = resp.data.weather[0].description;
                     this.weather = resp.data.weather[0].main;
                     this.iconCode = resp.data.weather[0].icon;
                     this.imgSrc = 'http://openweathermap.org/img/wn/'+this.iconCode+'@2x.png'
                 })
             },
+            getTempUnit : function (event) {
+                this.buttonUnit = event.value;
+            }
         }
     }
 </script>
@@ -70,9 +91,10 @@
     #weatherContainer .row:nth-child(3){
         margin-left: 0px;
         margin-right: 0px;
-        padding: 0 0 0 0;
+        padding: 10 0 0 0;
         background-color:  #bfd8ff;
         border-right: 0.5px solid black;
+        border-bottom: 0.5px solid black;
     }
     #weatherContainer .row:first-child span{
         font-size: 14px;

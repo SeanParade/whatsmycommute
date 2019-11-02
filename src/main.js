@@ -3,14 +3,12 @@ import App from "./App.vue";
 import router from "./router";
 import store from "./store";
 import BootstrapVue from 'bootstrap-vue';
-import ToggleSwitch from 'vuejs-toggle-switch'
+import ToggleButton from 'vue-js-toggle-button'
 import 'bootstrap/dist/css/bootstrap.css';
 import 'bootstrap-vue/dist/bootstrap-vue.css';
-import '@/css/toggles-full.css';
-import '@/css/toggles.css'
 
 Vue.use(BootstrapVue)
-Vue.use(ToggleSwitch)
+Vue.use(ToggleButton)
 
 Vue.config.productionTip = false;
 
