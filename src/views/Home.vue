@@ -1,6 +1,6 @@
 <template>
   <div>
-    <b-container>
+    <b-container fluid>
       <b-row>
         <b-col sm="2"></b-col>
         <b-col sm="8"><list></list></b-col>
@@ -23,3 +23,11 @@ export default {
     }
   }
 </script>
+<style>
+  .container-fluid{
+    width: 100%
+  }
+  .row {
+    width: 100%;
+  }
+</style>

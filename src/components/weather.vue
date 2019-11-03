@@ -44,7 +44,6 @@
         },
         methods:{
             getWeather: function(event){
-                //During initial load, there is no event so Unit takes default value. On change, toggle switch returns event value = true or false depending on switch state
                 event ? 
                     this.Unit = event.value ? 
                         'metric':
@@ -76,6 +75,8 @@
         border-style: groove;
     }
     #weatherContainer.container{
+        border: 0.5px solid black;
+        border-style: groove;
         padding: 0 0 0 0;
     }
     #weatherContainer .row:first-child{
@@ -83,15 +84,12 @@
         margin-left: 0;
         margin-right: 0;
         background-color: #bfd8ff;
-        border-right: 0.5px solid black
     }
     #weatherContainer .row:nth-child(3){
         margin-left: 0px;
         margin-right: 0px;
         padding: 10 0 0 0;
         background-color:  #bfd8ff;
-        border-right: 0.5px solid black;
-        border-bottom: 0.5px solid black;
     }
     #weatherContainer .row:first-child span{
         font-size: 14px;

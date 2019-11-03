@@ -1,5 +1,18 @@
 <template>
     <div>
+        Bus Route: <select id="busRouteList" name="busRouteList" @change="getBusStops"></select>
+        
+        Bus Stops: <select id="busStopList" name="busStopList" @change="setStopTag"></select>
+
+        Direction: <select id="directions">
+            <option value="North">North</option>
+            <option value="East">East</option>
+            <option value="South">South</option>
+            <option value="West">West</option>
+        </select>
+
+        <b-button variant="info" id="getBusButton" @click="getBusData">Get Bus Information</b-button>
+
         <table id="routeTable">
             <tr>
                 <th>Route Number</th>
@@ -22,8 +35,10 @@ Grab data from API for bus schedule
 Read users preferences for bus choice
 Pass list data -> ListItem
 */
-
+const axios = require('axios').default;
 import ListItem from './ListItem.vue'
+import $ from 'jquery'
+
 export default{
     name: 'List',
     components:{
@@ -31,41 +46,92 @@ export default{
     },
     data(){
         return {
+            selectedRoute : '',
+            busTag: '',
+            stopName: '',
+            stopTag: '',
+            busRouteOptions: [],
+            busStopOptions: [],
+            busStopResponseData: [],
             busData: [
                 {
                     routeNumber : '1',
                     routeName : 'A',
                     direction : 'North',
                     timeUntil : ['15']
-                },
-                {
-                    routeNumber : '2',
-                    routeName : 'B',
-                    direction : 'West',
-                    timeUntil : ['35']
-                },
-                {
-                    routeNumber : '3',
-                    routeName : 'C',
-                    direction : 'East',
-                    timeUntil : ['55', '76', '100']
-                },
+                }
             ]
         }
     },
     methods: {
+        getBusRoutes: function(){
+            axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=ttc')
+            .then(resp => {
+                //resp data format "route": {"title":"route name", "tag":tagNum}
+                for(let i=0; i< resp.data.route.length; i++){
+                    this.busRouteOptions.push("<option value='" + resp.data.route[i].title + "'>" + resp.data.route[i].title +'</option>')
+                }
+                $('select#busRouteList').append(this.busRouteOptions)
+                this.getBusStops();
+            })
+            .catch((error) => {
+                console.log(error.response.data.message)
+            })
+        },
+        getBusStops: function(e){
+            this.busStopOptions = []
+            $('select#busStopList').empty();
+            
+            e ?
+                this.selectedRoute = e.target.options[e.target.options.selectedIndex].value :
+                this.selectedRoute = $('select#busRouteList').val();
+            
+            this.busTag = this.selectedRoute.match(/\d+/g) //eslint-disable-line
+
+            let stopListURL = 'http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=ttc&r='+this.busTag[0]
+            axios.get(stopListURL)
+            .then(resp => {
+                this.busStopResponseData = resp.data;
+                //resp data format "route":{"stop":[{"title":"stopName","stopID": stopID,"tag":tagNum}]}
+                for (let i=0; i<resp.data.route.stop.length; i++){
+                    this.busStopOptions.push("<option value='" + resp.data.route.stop[i].title.replace(/'/g,'&#x27;') + "'>" + resp.data.route.stop[i].title.replace(/'/g,'&#x27;') + '</option>')
+                }
+                $('select#busStopList').append(this.busStopOptions);
+                //Set Initial Value of stopTag
+                this.stopTag = this.stopTag === '' ? 
+                    this.busStopResponseData.route.stop.filter(index => index.title === $("select#busStopList").val())[0].tag :
+                    ''
+            })
+            .catch((error) => {
+                console.log(error.response.data.message)
+            })
+        },
+        //Used to set stopTag to call prediction later
+        setStopTag: function(e){
+            this.stopName = e.target.options[e.target.options.selectedIndex].value
+            for (let i=0; i<this.busStopResponseData.route.stop.length; i++){
+                this.busStopResponseData.route.stop[i].title === this.stopName ?
+                this.stopTag = this.busStopResponseData.route.stop[i].tag  :
+                ''
+            }
+        },
         getUserPreferences: function(){
 
         },
         getBusData: function(){
-
+            axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.stopTag+'&useShortTitles=true')
+            .then(resp => {
+                console.log(resp.data.predictions.direction.prediction)
+            })
+            .catch((error) => {
+                console.log(error.dresponse.data.message)
+            })
         }
     },
     created(){
-
     },
     mounted(){
-
+        this.getBusRoutes()
     }
 }
 
@@ -74,7 +140,8 @@ export default{
     #routeTable{
         width: 100%;
         margin-left: auto;
-        margin-right: auto 
+        margin-right: auto;
+        margin-top: 20px;
     }
     #routeTable tr{
         width: 100%
@@ -92,5 +159,14 @@ export default{
     #tableContainer tr th:last-child{
         width: 40%;
         text-align: center;
+    }
+    #getBusButton{
+        margin-left: 10px
+    }
+    select#busStopList{
+        width: 30%
+    }
+    select#busRouteList{
+        width: 30%
     }
 </style>
