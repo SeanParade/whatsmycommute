@@ -1,29 +1,48 @@
 <template>
     <div>
-        Bus Route: <select id="busRouteList" name="busRouteList" @change="getBusStops"></select>
-        
-        Bus Stops: <select id="busStopList" name="busStopList" @change="setStopTag"></select>
-
-        Direction: <select id="directions">
-            <option value="North">North</option>
-            <option value="East">East</option>
-            <option value="South">South</option>
-            <option value="West">West</option>
-        </select>
-
-        <b-button variant="info" id="getBusButton" @click="getBusData">Get Bus Information</b-button>
-
-        <table id="routeTable">
-            <tr>
-                <th>Route Number</th>
-                <th>Route Name</th>
-                <th>Direction</th>
-                <th>Time Until</th>
-            </tr>
-            <template v-for="(busSchedule, index) in busData">
-                    <list-item :key="index" :scheduleData="busSchedule"></list-item>
+        <div class="row">
+            <div class="col-12 mt-4 mb-2">
+                Bus Route: 
+                <select id="busRouteList" name="busRouteList" @change="getBusStops"></select>
+            </div>
+            <div class="col-12 my-2">
+                Bus Stops: 
+                <select id="busStopList" name="busStopList" @change="setStopTag"></select>
+            </div>
+            <div class="col-12 my-2">
+                Direction: 
+                <select id="directions">
+                    <option value="North">North</option>
+                    <option value="East">East</option>
+                    <option value="South">South</option>
+                    <option value="West">West</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <b-button class="my-4" 
+                    variant="info" 
+                    id="getBusButton" 
+                    @click="getBusData">
+                        Get Bus Information
+                </b-button>
+            </div>
+        </div>
+        <div class="container-fluid">
+            <!-- Hiding the table if there is no bus data -->
+            <template v-if="busData.length > 0">
+                <table id="routeTable" >
+                    <tr>
+                        <th>Route Number</th>
+                        <th>Route Name</th>
+                        <th>Direction</th>
+                        <th>Time Until</th>
+                    </tr>
+                    <template v-for="(busSchedule, index) in busData" >
+                        <list-item :key="index" :scheduleData="busSchedule"></list-item>
+                    </template>
+                </table>        
             </template>
-        </table>        
+        </div>
     </div>
 </template>
 
@@ -35,7 +54,7 @@ Grab data from API for bus schedule
 Read users preferences for bus choice
 Pass list data -> ListItem
 */
-const axios = require('axios').default;
+import axios from 'axios';
 import ListItem from './ListItem.vue'
 import $ from 'jquery'
 
@@ -53,14 +72,7 @@ export default{
             busRouteOptions: [],
             busStopOptions: [],
             busStopResponseData: [],
-            busData: [
-                {
-                    routeNumber : '1',
-                    routeName : 'A',
-                    direction : 'North',
-                    timeUntil : ['15']
-                }
-            ]
+            busData: []
         }
     },
     methods: {
@@ -75,7 +87,7 @@ export default{
                 this.getBusStops();
             })
             .catch((error) => {
-                console.log(error.response.data.message)
+                console.warn(error)
             })
         },
         getBusStops: function(e){
@@ -103,7 +115,7 @@ export default{
                     ''
             })
             .catch((error) => {
-                console.log(error.response.data.message)
+                console.log(error)
             })
         },
         //Used to set stopTag to call prediction later
@@ -121,10 +133,28 @@ export default{
         getBusData: function(){
             axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.stopTag+'&useShortTitles=true')
             .then(resp => {
-                console.log(resp.data.predictions.direction.prediction)
+                let returnedBusSchedule = resp.data.predictions;
+                // If the service returns no predicitons
+                if(returnedBusSchedule.dirTitleBecauseNoPredictions){
+                    console.log(returnedBusSchedule.dirTitleBecauseNoPredictions + 
+                    " is either out of service or does not go in this direction");
+                } 
+                else if (returnedBusSchedule.direction){
+                    // Formatting the bus data the way the component expects it
+                    this.busData.push({
+                        routeNumber : returnedBusSchedule.routeTitle,
+                        routeName : '', //May not need this property afterall
+                        direction : returnedBusSchedule.direction.title.split(" ")[0],
+
+                        // looping through the prediciton object and only returning the minutes
+                        // since that's all we need here
+                        timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
+                    });
+                }
             })
             .catch((error) => {
-                console.log(error.dresponse.data.message)
+                console.warn(error)
+                //console.log(error.dresponse.data.message)
             })
         }
     },
