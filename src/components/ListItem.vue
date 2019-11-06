@@ -1,7 +1,7 @@
 <template>
     <tr id="busDataRows">
-        <td>{{routeNumber}}</td>
         <td>{{routeName}}</td>
+        <td>{{stopName}}</td>
         <td>{{direction}}</td>
         <td >
             <span v-for="(time, index) in timeUntil" :key="index">
@@ -18,8 +18,8 @@
         },
         data(){
             return {
-                routeNumber : this.scheduleData.routeNumber,
                 routeName : this.scheduleData.routeName,
+                stopName : this.scheduleData.stopName,
                 direction : this.scheduleData.direction,
                 timeUntil : this.scheduleData.timeUntil
             }

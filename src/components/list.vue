@@ -2,15 +2,31 @@
     <div>
         <div class="row">
             <div class="col-12 mt-4 mb-2">
-                Bus Route: 
-                <select id="busRouteList" name="busRouteList" @change="getBusStops"></select>
+                <span>Bus Route:</span>
+                <select id="busRouteList"  
+                    @change="getBusStops"
+                    v-model="busTag">
+                    <!--Is there a reason you included index as opposed to v-for="busRoute in busRouteOptions" and omit :key="index"?-->
+                    <template v-for="(busRoute,index) in busRouteOptions"> 
+                        <option :key="index" :value="busRoute.tag">{{busRoute.title}}</option>
+                    </template>
+                </select>
             </div>
             <div class="col-12 my-2">
-                Bus Stops: 
-                <select id="busStopList" name="busStopList" @change="setStopTag"></select>
+                <span>
+                    Bus Stops: 
+                </span>
+                <select id="busStopList" 
+                v-model="selectedRoute">
+                    <template v-for="(busStop,index) in busStopOptions">
+                        <option :key="index" :value="busStop.tag">{{busStop.title}}</option>
+                    </template>
+                </select>
             </div>
             <div class="col-12 my-2">
-                Direction: 
+                <span>
+                    Direction: 
+                </span>
                 <select id="directions">
                     <option value="North">North</option>
                     <option value="East">East</option>
@@ -32,12 +48,12 @@
             <template v-if="busData.length > 0">
                 <table id="routeTable" >
                     <tr>
-                        <th>Route Number</th>
                         <th>Route Name</th>
+                        <th>Stop Name</th>
                         <th>Direction</th>
                         <th>Time Until</th>
                     </tr>
-                    <template v-for="(busSchedule, index) in busData" >
+                    <template v-for="(busSchedule,index) in Object.values(busData)" >
                         <list-item :key="index" :scheduleData="busSchedule"></list-item>
                     </template>
                 </table>        
@@ -49,14 +65,9 @@
 
 
 <script>
-/**
-Grab data from API for bus schedule
-Read users preferences for bus choice
-Pass list data -> ListItem
-*/
+
 import axios from 'axios';
 import ListItem from './ListItem.vue'
-import $ from 'jquery'
 
 export default{
     name: 'List',
@@ -68,71 +79,52 @@ export default{
             selectedRoute : '',
             busTag: '',
             stopName: '',
-            stopTag: '',
             busRouteOptions: [],
             busStopOptions: [],
             busStopResponseData: [],
-            busData: []
+            busData: [],
+            busDataEdited: []
         }
     },
     methods: {
         getBusRoutes: function(){
             axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=ttc')
             .then(resp => {
-                //resp data format "route": {"title":"route name", "tag":tagNum}
-                for(let i=0; i< resp.data.route.length; i++){
-                    this.busRouteOptions.push("<option value='" + resp.data.route[i].title + "'>" + resp.data.route[i].title +'</option>')
-                }
-                $('select#busRouteList').append(this.busRouteOptions)
+                let routeList = resp.data.route
+                this.busRouteOptions = routeList;
                 this.getBusStops();
             })
             .catch((error) => {
                 console.warn(error)
             })
         },
-        getBusStops: function(e){
-            this.busStopOptions = []
-            $('select#busStopList').empty();
-            
-            e ?
-                this.selectedRoute = e.target.options[e.target.options.selectedIndex].value :
-                this.selectedRoute = $('select#busRouteList').val();
-            
-            this.busTag = this.selectedRoute.match(/\d+/g) //eslint-disable-line
 
-            let stopListURL = 'http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=ttc&r='+this.busTag[0]
+        getBusStops: function(){    
+            if(!this.busTag){
+                return
+            } 
+            let stopListURL = 'http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=ttc&r='+this.busTag;
             axios.get(stopListURL)
             .then(resp => {
                 this.busStopResponseData = resp.data;
                 //resp data format "route":{"stop":[{"title":"stopName","stopID": stopID,"tag":tagNum}]}
-                for (let i=0; i<resp.data.route.stop.length; i++){
-                    this.busStopOptions.push("<option value='" + resp.data.route.stop[i].title.replace(/'/g,'&#x27;') + "'>" + resp.data.route.stop[i].title.replace(/'/g,'&#x27;') + '</option>')
-                }
-                $('select#busStopList').append(this.busStopOptions);
-                //Set Initial Value of stopTag
-                this.stopTag = this.stopTag === '' ? 
-                    this.busStopResponseData.route.stop.filter(index => index.title === $("select#busStopList").val())[0].tag :
-                    ''
+                let busStops = resp.data.route.stop;
+                this.busStopOptions = busStops;
             })
             .catch((error) => {
                 console.log(error)
             })
         },
-        //Used to set stopTag to call prediction later
-        setStopTag: function(e){
-            this.stopName = e.target.options[e.target.options.selectedIndex].value
-            for (let i=0; i<this.busStopResponseData.route.stop.length; i++){
-                this.busStopResponseData.route.stop[i].title === this.stopName ?
-                this.stopTag = this.busStopResponseData.route.stop[i].tag  :
-                ''
-            }
-        },
+
         getUserPreferences: function(){
 
         },
         getBusData: function(){
-            axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.stopTag+'&useShortTitles=true')
-            .then(resp => {
+            let predicitionRoute ='http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.selectedRoute+'&useShortTitles=true';
+            
+            axios.get(predicitionRoute)
+            .then(resp => { 
+                console.log("RESPONSE",resp)
                 let returnedBusSchedule = resp.data.predictions;
                 // If the service returns no predicitons
                 if(returnedBusSchedule.dirTitleBecauseNoPredictions){
@@ -141,15 +133,13 @@ export default{
                 } 
                 else if (returnedBusSchedule.direction){
                     // Formatting the bus data the way the component expects it
-                    this.busData.push({
-                        routeNumber : returnedBusSchedule.routeTitle,
-                        routeName : '', //May not need this property afterall
+                        this.busData[returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle] = {
+                        routeName : returnedBusSchedule.routeTitle,
+                        stopName : returnedBusSchedule.stopTitle,
                         direction : returnedBusSchedule.direction.title.split(" ")[0],
-
-                        // looping through the prediciton object and only returning the minutes
-                        // since that's all we need here
-                        timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
-                    });
+                        timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes)
+                    };
+                    console.log(Object.values(this.busData))
                 }
             })
             .catch((error) => {
