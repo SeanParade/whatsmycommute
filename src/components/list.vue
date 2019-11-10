@@ -2,11 +2,12 @@
     <div>
         <div class="row">
             <div class="col-12 mt-4 mb-2">
-                <span>Bus Route:</span>
+                <span>
+                    Bus Route: 
+                </span>
                 <select id="busRouteList"  
                     @change="getBusStops"
                     v-model="busTag">
-                    <!--Is there a reason you included index as opposed to v-for="busRoute in busRouteOptions" and omit :key="index"?-->
                     <template v-for="(busRoute,index) in busRouteOptions"> 
                         <option :key="index" :value="busRoute.tag">{{busRoute.title}}</option>
                     </template>
@@ -23,6 +24,7 @@
                     </template>
                 </select>
             </div>
+            <!--
             <div class="col-12 my-2">
                 <span>
                     Direction: 
@@ -34,6 +36,7 @@
                     <option value="West">West</option>
                 </select>
             </div>
+            -->
             <div class="col-12">
                 <b-button class="my-4" 
                     variant="info" 
@@ -42,10 +45,15 @@
                         Get Bus Information
                 </b-button>
             </div>
+            <div>
+                <span>
+                    {{this.noResultsError}}
+                </span>
+            </div>
         </div>
         <div class="container-fluid">
             <!-- Hiding the table if there is no bus data -->
-            <template v-if="busData.length > 0">
+            <template v-if="Object.values(this.busData).length > 0"> 
                 <table id="routeTable" >
                     <tr>
                         <th>Route Name</th>
@@ -83,7 +91,8 @@ export default{
             busStopOptions: [],
             busStopResponseData: [],
             busData: [],
-            busDataEdited: []
+            busDataEdited: [],
+            noResultsError: ''
         }
     },
     methods: {
@@ -117,30 +126,49 @@ export default{
         },
 
         getUserPreferences: function(){
-
+            let cookieKeys = this.$cookies.keys();
+            if(cookieKeys.length > 0){
+                for(let i = 0; i < cookieKeys.length; i++){
+                    let storedBusInfo = this.$cookies.get(cookieKeys[i]);
+                    this.busData[cookieKeys[i]] = storedBusInfo; 
+                }
+            }
         },
+    
         getBusData: function(){
             let predicitionRoute ='http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.selectedRoute+'&useShortTitles=true';
-            
+
             axios.get(predicitionRoute)
             .then(resp => { 
                 console.log("RESPONSE",resp)
                 let returnedBusSchedule = resp.data.predictions;
                 // If the service returns no predicitons
                 if(returnedBusSchedule.dirTitleBecauseNoPredictions){
-                    console.log(returnedBusSchedule.dirTitleBecauseNoPredictions + 
-                    " is either out of service or does not go in this direction");
+                    this.noResultsError = returnedBusSchedule.dirTitleBecauseNoPredictions + 
+                    " is either out of service or does not go in this direction"
                 } 
                 else if (returnedBusSchedule.direction){
-                    // Formatting the bus data the way the component expects it
-                        this.busData[returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle] = {
-                        routeName : returnedBusSchedule.routeTitle,
-                        stopName : returnedBusSchedule.stopTitle,
-                        direction : returnedBusSchedule.direction.title.split(" ")[0],
-                        timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes)
-                    };
-                    console.log(Object.values(this.busData))
-                }
+                        this.noResultsError = '';
+                        var vm = this;
+                        let busKey = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
+                        let busInfo = {
+                            routeName : returnedBusSchedule.routeTitle,
+                                stopName : returnedBusSchedule.stopTitle,
+                                direction : returnedBusSchedule.direction.title.split(" ")[0],
+                                timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes)
+                        }
+                        vm.$set(
+                            this.busData, 
+                            busKey,
+                            busInfo
+                        )
+                        this.$cookies.isKey(busKey) ?
+                            '':
+                            this.$cookies.set(
+                                busKey,
+                                busInfo
+                            )
+                };
             })
             .catch((error) => {
                 console.warn(error)
@@ -151,7 +179,8 @@ export default{
     created(){
     },
     mounted(){
-        this.getBusRoutes()
+        this.getBusRoutes();
+        this.getUserPreferences();
     }
 }
 
