@@ -2,7 +2,7 @@
     <div>
         <div class="row">
             <div class="col-12 mt-4 mb-2">
-                <span>
+                <span class="optionLabels">
                     Bus Route: 
                 </span>
                 <select id="busRouteList"  
@@ -14,7 +14,7 @@
                 </select>
             </div>
             <div class="col-12 my-2">
-                <span>
+                <span class="optionLabels">
                     Bus Stops: 
                 </span>
                 <select id="busStopList" 
@@ -24,19 +24,6 @@
                     </template>
                 </select>
             </div>
-            <!--
-            <div class="col-12 my-2">
-                <span>
-                    Direction: 
-                </span>
-                <select id="directions">
-                    <option value="North">North</option>
-                    <option value="East">East</option>
-                    <option value="South">South</option>
-                    <option value="West">West</option>
-                </select>
-            </div>
-            -->
             <div class="col-12">
                 <b-button class="my-4" 
                     variant="info" 
@@ -51,6 +38,8 @@
                 </span>
             </div>
         </div>
+
+        <!-- For Displaying Bus Data-->
         <div class="container-fluid">
             <!-- Hiding the table if there is no bus data -->
             <template v-if="Object.values(this.busData).length > 0"> 
@@ -61,8 +50,26 @@
                         <th>Direction</th>
                         <th>Time Until</th>
                     </tr>
-                    <template v-for="(busSchedule,index) in Object.values(busData)" >
-                        <list-item :key="index" :scheduleData="busSchedule"></list-item>
+                    <template v-for="busSchedule in Object.values(busData)" >
+                        <bus-list-item :key="busSchedule.uniqueKey" :scheduleData="busSchedule"></bus-list-item>
+                    </template>
+                </table>        
+            </template>
+        </div>
+        
+        <!-- For Displaying Direction Data-->
+        <div class="container-fluid">
+            <!-- Hiding the table if there is no bus data -->
+            <template v-if="directionData.length > 0"> 
+                <table id="directionTable">
+                    <tr>
+                        <th>Departure</th>
+                        <th>Arrival</th>
+                        <th>Duration</th>
+                        <th>Steps</th>
+                    </tr>
+                    <template v-for="(direction, index) in directionData" >
+                        <direction-list-item :key="index" :direction="direction"></direction-list-item>
                     </template>
                 </table>        
             </template>
@@ -75,12 +82,14 @@
 <script>
 
 import axios from 'axios';
-import ListItem from './ListItem.vue'
+import BusListItem from './BusListItem.vue'
+import DirectionListItem from './DirectionListItem.vue'
 
 export default{
     name: 'List',
     components:{
-        ListItem
+        BusListItem,
+        DirectionListItem
     },
     data(){
         return {
@@ -92,6 +101,7 @@ export default{
             busStopResponseData: [],
             busData: [],
             busDataEdited: [],
+            directionData: [],
             noResultsError: ''
         }
     },
@@ -107,7 +117,6 @@ export default{
                 console.warn(error)
             })
         },
-
         getBusStops: function(){    
             if(!this.busTag){
                 return
@@ -116,7 +125,7 @@ export default{
             axios.get(stopListURL)
             .then(resp => {
                 this.busStopResponseData = resp.data;
-                //resp data format "route":{"stop":[{"title":"stopName","stopID": stopID,"tag":tagNum}]}
+                //resp data format "route":{"stop":[{"title":stopName,"stopID": stopID,"tag":tagNum}]}
                 let busStops = resp.data.route.stop;
                 this.busStopOptions = busStops;
             })
@@ -124,7 +133,6 @@ export default{
                 console.log(error)
             })
         },
-
         getUserPreferences: function(){
             let cookieKeys = this.$cookies.keys();
             if(cookieKeys.length > 0){
@@ -133,8 +141,7 @@ export default{
                     this.busData[cookieKeys[i]] = storedBusInfo; 
                 }
             }
-        },
-    
+        },   
         getBusData: function(){
             let predicitionRoute ='http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.selectedRoute+'&useShortTitles=true';
 
@@ -148,32 +155,60 @@ export default{
                     " is either out of service or does not go in this direction"
                 } 
                 else if (returnedBusSchedule.direction){
+                    let busSaved = Object.keys(this.busData);
+                    let vm = this;
+                    //Show up to 3 bus information. If there is more than three remove the first and add the latest
+                    if(busSaved.length < 3) {
                         this.noResultsError = '';
-                        var vm = this;
-                        let busKey = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
-                        let busInfo = {
-                            routeName : returnedBusSchedule.routeTitle,
-                                stopName : returnedBusSchedule.stopTitle,
-                                direction : returnedBusSchedule.direction.title.split(" ")[0],
-                                timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes)
-                        }
-                        vm.$set(
-                            this.busData, 
-                            busKey,
-                            busInfo
+                        this.setBusData(returnedBusSchedule)
+                    }
+                    else if(busSaved.length >= 3){
+                        let firstKey = Object.keys(this.busData)[0]
+                        vm.$delete(
+                            this.busData,
+                            firstKey
                         )
-                        this.$cookies.isKey(busKey) ?
-                            '':
-                            this.$cookies.set(
-                                busKey,
-                                busInfo
-                            )
+                        this.$cookies.remove(firstKey)
+                        this.setBusData(returnedBusSchedule)
+                    }
                 };
             })
             .catch((error) => {
                 console.warn(error)
                 //console.log(error.dresponse.data.message)
             })
+        },
+        setBusData: function(returnedBusSchedule){
+            let vm = this;
+            let busKey = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
+                let busInfo = {
+                    routeName : returnedBusSchedule.routeTitle,
+                    stopName : returnedBusSchedule.stopTitle,
+                    direction : returnedBusSchedule.direction.title.split(" ")[0],
+                    timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
+                    uniqueKey: busKey
+                }
+                vm.$set(
+                    this.busData, 
+                    busKey,
+                    busInfo
+                )
+                this.$cookies.isKey(busKey) ?
+                    '':
+                    this.$cookies.set(
+                    busKey,
+                    busInfo
+                )
+            console.log(Object.values(this.busData))
+        },
+        updateDirection: function(e){
+            this.directionData.push({
+                arrival: e.arrival_time,
+                departure: e.departure_time,
+                duration: e.duration,
+                steps: e.steps
+            })
+            console.log(this.directionData)
         }
     },
     created(){
@@ -181,11 +216,19 @@ export default{
     mounted(){
         this.getBusRoutes();
         this.getUserPreferences();
+        this.$root.$on('processDirection', directionInfo => {
+            this.updateDirection(directionInfo)
+        })
     }
 }
 
 </script>
 <style>
+    .optionLabels{
+        color: white;
+        font-style: Courier;
+        font-size: 24px;
+    }
     #routeTable{
         width: 100%;
         margin-left: auto;
@@ -201,6 +244,10 @@ export default{
     #routeTable tr:nth-child(even){
         background-color:#bfd8ff;
     }
+    #routeTable tr:nth-child(odd):not(:first-of-type){
+        background-color: white;
+        color: black;
+    }
     #routeTable tr th:nth-child(n+1):not(:last-child){
         width: 20%;
         text-align: center
@@ -213,9 +260,9 @@ export default{
         margin-left: 10px
     }
     select#busStopList{
-        width: 30%
+        width: 40%
     }
     select#busRouteList{
-        width: 30%
+        width: 40%
     }
 </style>

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div id="Container">
     <b-container fluid>
       <b-row>
         <b-col sm="4"><maps></maps></b-col>
@@ -26,10 +26,18 @@ export default {
   }
 </script>
 <style>
+  #Container{
+    margin: auto;
+    margin-top: 150px;
+  }
   .container-fluid{
-    width: 100%
+    width: 100%;
+    height: 100%;
   }
   .row {
     width: 100%;
+  }
+  .Title{
+    color: white;
   }
 </style>

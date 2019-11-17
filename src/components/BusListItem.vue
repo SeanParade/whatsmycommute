@@ -12,7 +12,7 @@
 </template>
 <script>
     export default{
-        name: 'list-item',
+        name: 'bus-list-item',
         props:{
             scheduleData: Object,
         },
@@ -24,11 +24,13 @@
                 timeUntil : this.scheduleData.timeUntil
             }
         },
+
         computed: {
             renderOrder: function(){
                 return null
             }
         },
+
         filters: {
             formatDisplayTime: function(time){
                 var timeValue = parseInt(time);
@@ -39,14 +41,12 @@
                         Math.floor(timeValue / 60) + ' hrs' + (timeValue % 60) + ' min'
             }
         },
+        
         created(){
         }
     }
 </script>
 <style>
-    #busDataRows td{
-        border-style: ridge;
-    }
     #busDataRows td:nth-child(n+4){
         text-align: left;
     }

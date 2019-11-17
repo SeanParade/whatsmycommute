@@ -1,32 +1,42 @@
 <template>
-  <div id="app" class="container py-4">
-    <!-- <div id="nav">
-      <router-link to="/">Home</router-link> |
-      <router-link to="/about">About</router-link>
-    </div> -->
+  <div id="app" class="py-4">
+    <div class="bg">
+      <span class="Title">WHAT'S MY COMMUTE</span>
+    </div>
     <router-view />
   </div>
 </template>
 
 
 <style lang="scss">
+
+#app, .bg {
+  position: absolute;
+}
 #app {
+  width: 100%;
+  height: 100%;
   font-family: "Avenir", Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+  z-index: 1;
 }
-
-#nav {
-  padding: 30px;
-  a {
-    font-weight: bold;
-    color: #2c3e50;
-
-    &.router-link-exact-active {
-      color: #42b983;
-    }
+.bg {
+    /* Full height */
+    display:table;
+    width:100%;
+    height:100%;
+    background: linear-gradient( rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5) ), url('./assets/Toronto_Ontario.jpg');
+    background-position:center top;
+    z-index: 0
   }
-}
+  .Title{
+    color: white;
+    font-size: 56px;
+    font-family: Aileron;
+    text-decoration: underline;
+    text-underline-position: under;
+  }
 </style>

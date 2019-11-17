@@ -4,6 +4,7 @@
             <b-row>
                 <span>Current Weather
                     <toggle-button
+                    class="toggle"
                     :value="true" 
                     color="#82C7EB"
                     :sync="false"
@@ -85,6 +86,10 @@
         margin-right: 0;
         background-color: #bfd8ff;
     }
+    #weatherContainer .row:nth-child(2){
+        background-color: white;
+        margin-left: 0px;
+    }
     #weatherContainer .row:nth-child(3){
         margin-left: 0px;
         margin-right: 0px;
@@ -93,13 +98,23 @@
     }
     #weatherContainer .row:first-child span{
         font-size: 14px;
+        font-weight: bold;
+        font-style: Courier;
         display: block;
         margin-left: auto;
         margin-right: auto;
     }
+    .toggle {
+        margin-top: 10px;
+        margin-left: 20px
+    }
     #weatherContainer .row:last-child span {
-        font-size: 12px;
+        font-size: 14px;
+        font-weight: bold;
+        font-style: Courier;
         display: block;
+        margin-top: 10px;
+        margin-bottom: 10px;
         margin-left: auto;
         margin-right: auto;
     }
