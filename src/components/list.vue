@@ -43,6 +43,7 @@
         <div class="container-fluid">
             <!-- Hiding the table if there is no bus data -->
             <template v-if="Object.values(this.busData).length > 0"> 
+                <span class="tableHeader">Saved Bus Routes</span>
                 <table id="routeTable" >
                     <tr>
                         <th>Route Name</th>
@@ -58,9 +59,10 @@
         </div>
         
         <!-- For Displaying Direction Data-->
-        <div class="container-fluid">
+        <div class="container-fluid" id="directionContainer">
             <!-- Hiding the table if there is no bus data -->
             <template v-if="directionData.length > 0"> 
+                <span class="tableHeader">Saved Trips</span> 
                 <table id="directionTable">
                     <tr>
                         <th>Departure</th>
@@ -95,12 +97,9 @@ export default{
         return {
             selectedRoute : '',
             busTag: '',
-            stopName: '',
             busRouteOptions: [],
             busStopOptions: [],
-            busStopResponseData: [],
-            busData: [],
-            busDataEdited: [],
+            busData: [], 
             directionData: [],
             noResultsError: ''
         }
@@ -124,7 +123,6 @@ export default{
             let stopListURL = 'http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=ttc&r='+this.busTag;
             axios.get(stopListURL)
             .then(resp => {
-                this.busStopResponseData = resp.data;
                 //resp data format "route":{"stop":[{"title":stopName,"stopID": stopID,"tag":tagNum}]}
                 let busStops = resp.data.route.stop;
                 this.busStopOptions = busStops;
@@ -137,17 +135,23 @@ export default{
             let cookieKeys = this.$cookies.keys();
             if(cookieKeys.length > 0){
                 for(let i = 0; i < cookieKeys.length; i++){
-                    let storedBusInfo = this.$cookies.get(cookieKeys[i]);
-                    this.busData[cookieKeys[i]] = storedBusInfo; 
+                    if(cookieKeys[i] != "direction"){
+                        let storedBusInfo = this.$cookies.get(cookieKeys[i]);
+                        this.busData[cookieKeys[i]] = storedBusInfo;
+                    }
+                    else if(cookieKeys[i] == "direction"){
+                        console.log("direction found")
+                        this.directionData = []
+                        console.log(this.$cookies.get("direction"))
+                        this.directionData.push(this.$cookies.get("direction"))
+                    }
                 }
             }
         },   
         getBusData: function(){
             let predicitionRoute ='http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.selectedRoute+'&useShortTitles=true';
-
             axios.get(predicitionRoute)
             .then(resp => { 
-                console.log("RESPONSE",resp)
                 let returnedBusSchedule = resp.data.predictions;
                 // If the service returns no predicitons
                 if(returnedBusSchedule.dirTitleBecauseNoPredictions){
@@ -175,40 +179,50 @@ export default{
             })
             .catch((error) => {
                 console.warn(error)
-                //console.log(error.dresponse.data.message)
             })
         },
         setBusData: function(returnedBusSchedule){
             let vm = this;
             let busKey = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
-                let busInfo = {
-                    routeName : returnedBusSchedule.routeTitle,
-                    stopName : returnedBusSchedule.stopTitle,
-                    direction : returnedBusSchedule.direction.title.split(" ")[0],
-                    timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
-                    uniqueKey: busKey
-                }
-                vm.$set(
-                    this.busData, 
-                    busKey,
-                    busInfo
-                )
-                this.$cookies.isKey(busKey) ?
-                    '':
-                    this.$cookies.set(
-                    busKey,
-                    busInfo
-                )
-            console.log(Object.values(this.busData))
+            let busInfo = {
+                routeName : returnedBusSchedule.routeTitle,
+                stopName : returnedBusSchedule.stopTitle,
+                direction : returnedBusSchedule.direction.title.split(" ")[0],
+                timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
+                uniqueKey: busKey
+            }
+            vm.$set(
+                this.busData, 
+                busKey,
+                busInfo
+            )
+            this.$cookies.isKey(busKey) ?
+                '':
+                this.$cookies.set(
+                busKey,
+                busInfo
+            )
         },
-        updateDirection: function(e){
-            this.directionData.push({
+        setDirection: function(e){
+            /*if(this.directionData.length !== 0){
+                this.directionData = []
+                this.$cookies.remove("direction")
+            }*/
+            console.log('called')
+            var directionDetails = {
                 arrival: e.arrival_time,
                 departure: e.departure_time,
                 duration: e.duration,
                 steps: e.steps
-            })
-            console.log(this.directionData)
+            }
+            console.log(directionDetails)
+            this.directionData.push(directionDetails)
+            this.$cookies.set(
+                "direction",
+                directionDetails
+            )
+            // Returns Null even though directionDetails is defined
+            console.log(this.$cookies.get("direction"))
         }
     },
     created(){
@@ -217,7 +231,7 @@ export default{
         this.getBusRoutes();
         this.getUserPreferences();
         this.$root.$on('processDirection', directionInfo => {
-            this.updateDirection(directionInfo)
+            this.setDirection(directionInfo)
         })
     }
 }
@@ -229,26 +243,38 @@ export default{
         font-style: Courier;
         font-size: 24px;
     }
-    #routeTable{
+    #routeTable, #directionTable{
         width: 100%;
         margin-left: auto;
         margin-right: auto;
         margin-top: 20px;
     }
-    #routeTable tr{
+    #routeTable tr, #directionTable tr{
         width: 100%
     }
-    #routeTable tr:first-child{
+    #routeTable tr:first-child, #directionTable tr:first-child{
         background-color:#7aaeff;
     }
     #routeTable tr:nth-child(even){
+        background-color:#bfd8ff;
+    }
+    #directionTable tr:nth-child(even){
         background-color:#bfd8ff;
     }
     #routeTable tr:nth-child(odd):not(:first-of-type){
         background-color: white;
         color: black;
     }
+    #directionTable tr:nth-child(odd):not(:first-of-type){
+        background-color: white;
+        color: black;
+    }
+    
     #routeTable tr th:nth-child(n+1):not(:last-child){
+        width: 20%;
+        text-align: center
+    }
+    #directionTable tr th:nth-child(n+1):not(:last-child){
         width: 20%;
         text-align: center
     }
@@ -264,5 +290,14 @@ export default{
     }
     select#busRouteList{
         width: 40%
+    }
+    .tableHeader{
+        color: white;
+        font-style: Courier;
+        font-size: 24px;
+    }
+    #directionContainer{
+        margin-top: 15px;
+        margin-bottom: 15px;
     }
 </style>

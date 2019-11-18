@@ -47,32 +47,23 @@
 
 <script>
         //prettier-ignore
-        // Question = how to access variable defined in data inside window.initMap
+        // Question = how to access variable defined in data inside window.initMap or is this bad practice
         // Question = error: You have included Google Maps JS API Multiple times in this page. How to check if scripts included and only append once
+        // Question = sometimes lat: NaN is not an accepted value even though it has value
+        var map, lat, long;
         window.initMap = function(){
-            navigator.geolocation.getCurrentPosition(function(position){
-                let lat = position.coords.latitude;
-                let long = position.coords.longitude;
                 let myOptions = { 
                     zoom: 15,
                     center:  new google.maps.LatLng(lat, long)
                 }
-                let map = new window.google.maps.Map(document.getElementById("map"), myOptions);
-                //Show Bus Stops
-                let transitLayer = new google.maps.TransitLayer();
-                transitLayer.setMap(map);
-            })
+                map = new window.google.maps.Map(document.getElementById("map"), myOptions)
         }
         export default {
             name: "maps",
             methods: { 
-                // when I put methods here and call from 
-                // inside initMap, I get methods is not defined at eval
             },
             data(){
                 return{
-                    lat: "",
-                    long: "",
                     startLocation : "",
                     endLocation : "",
                     directionData : []
@@ -80,25 +71,40 @@
             },
             mounted() {
                 this.setOrigin();
-                let mapScript = document.createElement('script')
+                //Load Google Maps API 
+                let mapScript = document.createElement('script');
                 mapScript.async = true;
                 mapScript.defer = true;
                 mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
                 this.$el.parentElement.append(mapScript)
             },
             methods: {
+                // Gets coordinate of current location and assigns it to origin input field
                 setOrigin: function(){
                     let self = this;
                     navigator.geolocation.getCurrentPosition(function(position){
-                        self.lat = position.coords.latitude;
-                        self.long = position.coords.longitude;
-                        self.startLocation = self.lat + ',' + self.long;
+                        lat = position.coords.latitude;
+                        long = position.coords.longitude;
+                        self.startLocation = lat + ',' + long;
                     })
                 },
                 getRoute: function(){
-                    let self = this; // What's the best way to get around
+                    let self = this; 
+                    //Get Services to Calculate and Retrieve Data
                     var directionsService = new google.maps.DirectionsService();
-                    var directionsRenderer = new google.maps.DirectionsRenderer();
+                    var directionsRenderer = new google.maps.DirectionsRenderer({map: map});
+                    var markerA = new google.maps.Marker({
+                        position: this.startLocation,
+                        title: "point A",
+                        label: "A",
+                        map: map
+                    })
+                    var markerB = new google.maps.Marker({
+                        position: this.endLocation,
+                        title: "point B",
+                        label: "B",
+                        map: map
+                    })
                     directionsService.route(
                        {
                            origin: {query: this.startLocation},
@@ -108,9 +114,10 @@
                        function(response, status) {
                            if(status === 'OK') {
                                let directionInfo = response.routes[0].legs[0]
-                               console.log(response.routes[0].legs[0])
-                               self.$root.$emit('processDirection', directionInfo) // best practices ? doing self.emit and creating <map @processDirection></map> in list.vue did not work
-                           }
+                               self.$root.$emit('processDirection', directionInfo) //Revisit
+                               //Draws Map Route
+                               directionsRenderer.setDirections(response)
+                            }
                            else{
                                window.alert('Directions request failed due to ' + status)
                            }
@@ -122,7 +129,7 @@
 </script>
 <style>
   #map {
-    height: 100%;
+    height: 60%;
     width: 100%;
     position: absolute;
   }
