@@ -70,7 +70,7 @@
                         <th>Duration</th>
                         <th>Steps</th>
                     </tr>
-                    <template v-for="direction in getDirectionsData"> <!--v-for="direction in getDirectionsData"-->
+                    <template v-for="direction in getDirectionsData">
                         <direction-list-item :key="direction" :direction="direction"></direction-list-item>
                     </template>
                 </table>        
@@ -108,7 +108,8 @@ export default{
         //    'directionData'
         //]),
         ...mapGetters([
-            'getDirectionsData'
+            'getDirectionsData',
+            'getDirectionDetails'
         ])
     },
     methods: {
