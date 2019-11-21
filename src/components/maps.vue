@@ -46,17 +46,16 @@
 </template>
 
 <script>
-        //prettier-ignore
-        // Question = how to access variable defined in data inside window.initMap or is this bad practice
-        // Question = error: You have included Google Maps JS API Multiple times in this page. How to check if scripts included and only append once
-        // Question = sometimes lat: NaN is not an accepted value even though it has value
-        var map, lat, long;
+        let mapComponent; //mapComponent = this after created
         window.initMap = function(){
-                let myOptions = { 
-                    zoom: 15,
-                    center:  new google.maps.LatLng(lat, long)
-                }
-                map = new window.google.maps.Map(document.getElementById("map"), myOptions)
+            let myOptions = { 
+                zoom: 15,
+                center:  new google.maps.LatLng(mapComponent.$store.state.lat, mapComponent.$store.state.long)
+            }
+            let map = new window.google.maps.Map(document.getElementById("map"), myOptions)
+            mapComponent.$store.commit("set_map",{
+                 map 
+            })
         }
         export default {
             name: "maps",
@@ -66,12 +65,13 @@
                 return{
                     startLocation : "",
                     endLocation : "",
-                    directionData : []
                 }
+            },
+            created(){
+                mapComponent = this;
             },
             mounted() {
                 this.setOrigin();
-                //Load Google Maps API 
                 let mapScript = document.createElement('script');
                 mapScript.async = true;
                 mapScript.defer = true;
@@ -81,29 +81,31 @@
             methods: {
                 // Gets coordinate of current location and assigns it to origin input field
                 setOrigin: function(){
-                    let self = this;
                     navigator.geolocation.getCurrentPosition(function(position){
-                        lat = position.coords.latitude;
-                        long = position.coords.longitude;
-                        self.startLocation = lat + ',' + long;
+                        mapComponent.$store.commit('set_coordinates',{
+                            lat: position.coords.latitude,
+                            long: position.coords.longitude 
+                        })
+                        mapComponent.startLocation = mapComponent.$store.state.lat + ',' + mapComponent.$store.state.long;
                     })
                 },
                 getRoute: function(){
-                    let self = this; 
                     //Get Services to Calculate and Retrieve Data
                     var directionsService = new google.maps.DirectionsService();
-                    var directionsRenderer = new google.maps.DirectionsRenderer({map: map});
+                    var directionsRenderer = new google.maps.DirectionsRenderer({
+                        map: mapComponent.$store.state.map
+                    });
                     var markerA = new google.maps.Marker({
                         position: this.startLocation,
                         title: "point A",
                         label: "A",
-                        map: map
+                        map: mapComponent.$store.map
                     })
                     var markerB = new google.maps.Marker({
                         position: this.endLocation,
                         title: "point B",
                         label: "B",
-                        map: map
+                        map: mapComponent.$store.map
                     })
                     directionsService.route(
                        {
@@ -113,9 +115,10 @@
                        },
                        function(response, status) {
                            if(status === 'OK') {
-                               let directionInfo = response.routes[0].legs[0]
-                               self.$root.$emit('processDirection', directionInfo) //Revisit
-                               //Draws Map Route
+                               let directions = response.routes[0].legs[0]
+                               mapComponent.$store.commit("set_directionInformation",{
+                                   directions
+                               })
                                directionsRenderer.setDirections(response)
                             }
                            else{

@@ -61,7 +61,7 @@
         <!-- For Displaying Direction Data-->
         <div class="container-fluid" id="directionContainer">
             <!-- Hiding the table if there is no bus data -->
-            <template v-if="directionData.length > 0"> 
+            <template> <!--v-if="getDirectionsData.length > 0" add later-->
                 <span class="tableHeader">Saved Trips</span> 
                 <table id="directionTable">
                     <tr>
@@ -70,8 +70,8 @@
                         <th>Duration</th>
                         <th>Steps</th>
                     </tr>
-                    <template v-for="(direction, index) in directionData" >
-                        <direction-list-item :key="index" :direction="direction"></direction-list-item>
+                    <template v-for="direction in getDirectionsData"> <!--v-for="direction in getDirectionsData"-->
+                        <direction-list-item :key="direction" :direction="direction"></direction-list-item>
                     </template>
                 </table>        
             </template>
@@ -79,13 +79,13 @@
     </div>
 </template>
 
-
-
 <script>
 
 import axios from 'axios';
 import BusListItem from './BusListItem.vue'
 import DirectionListItem from './DirectionListItem.vue'
+import { mapState } from 'vuex'
+import { mapGetters } from 'vuex'
 
 export default{
     name: 'List',
@@ -100,9 +100,16 @@ export default{
             busRouteOptions: [],
             busStopOptions: [],
             busData: [], 
-            directionData: [],
             noResultsError: ''
         }
+    },
+    computed: {
+        //...mapState([
+        //    'directionData'
+        //]),
+        ...mapGetters([
+            'getDirectionsData'
+        ])
     },
     methods: {
         getBusRoutes: function(){
@@ -182,7 +189,7 @@ export default{
             })
         },
         setBusData: function(returnedBusSchedule){
-            let vm = this;
+            let self = this;
             let busKey = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
             let busInfo = {
                 routeName : returnedBusSchedule.routeTitle,
@@ -191,7 +198,7 @@ export default{
                 timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
                 uniqueKey: busKey
             }
-            vm.$set(
+            self.$set(
                 this.busData, 
                 busKey,
                 busInfo
@@ -203,11 +210,8 @@ export default{
                 busInfo
             )
         },
-        setDirection: function(e){
-            /*if(this.directionData.length !== 0){
-                this.directionData = []
-                this.$cookies.remove("direction")
-            }*/
+        setDirection: function(e){  
+            /*
             console.log('called')
             var directionDetails = {
                 arrival: e.arrival_time,
@@ -215,8 +219,9 @@ export default{
                 duration: e.duration,
                 steps: e.steps
             }
+            */
             console.log(directionDetails)
-            this.directionData.push(directionDetails)
+            //this.directionData.push(directionDetails)
             this.$cookies.set(
                 "direction",
                 directionDetails
@@ -230,9 +235,9 @@ export default{
     mounted(){
         this.getBusRoutes();
         this.getUserPreferences();
-        this.$root.$on('processDirection', directionInfo => {
-            this.setDirection(directionInfo)
-        })
+        //this.$root.$on('processDirection', directionInfo => {
+        //    this.setDirection(directionInfo)
+        //})
     }
 }
 
