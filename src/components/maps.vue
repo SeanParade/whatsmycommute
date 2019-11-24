@@ -46,16 +46,13 @@
 </template>
 
 <script>
-        let mapComponent; //mapComponent = this after created
+        let mapComponent, map; //mapComponent = this after created
         window.initMap = function(){
             let myOptions = { 
                 zoom: 15,
                 center:  new google.maps.LatLng(mapComponent.$store.state.lat, mapComponent.$store.state.long)
             }
-            let map = new window.google.maps.Map(document.getElementById("map"), myOptions)
-            mapComponent.$store.commit("set_map",{
-                 map 
-            })
+            map = new window.google.maps.Map(document.getElementById("map"), myOptions)
         }
         export default {
             name: "maps",
@@ -93,13 +90,13 @@
                     //Get Services to Calculate and Retrieve Data
                     var directionsService = new google.maps.DirectionsService();
                     var directionsRenderer = new google.maps.DirectionsRenderer({
-                        map: mapComponent.$store.state.map
+                        map: map
                     });
                     var markerA = new google.maps.Marker({
                         position: this.startLocation,
                         title: "point A",
                         label: "A",
-                        map: mapComponent.$store.map
+                        map: map
                     })
                     var markerB = new google.maps.Marker({
                         position: this.endLocation,
@@ -116,8 +113,14 @@
                        function(response, status) {
                            if(status === 'OK') {
                                let directions = response.routes[0].legs[0]
+                               let directionsObj = {
+                                   Arrival: directions.arrival_time.text,
+                                   Departure: directions.departure_time.text,
+                                   Duration: directions.duration.text,
+                                   Steps: directions.steps
+                               }
                                mapComponent.$store.commit("set_directionInformation",{
-                                   directions
+                                   directionsObj
                                })
                                directionsRenderer.setDirections(response)
                             }

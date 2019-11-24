@@ -5,9 +5,9 @@
                 <span class="optionLabels">
                     Bus Route: 
                 </span>
-                <select id="busRouteList"  
-                    @change="getBusStops"
-                    v-model="busTag">
+                <select id="busRouteList" 
+                    v-model="getBusStops"
+                    >
                     <template v-for="(busRoute,index) in busRouteOptions"> 
                         <option :key="index" :value="busRoute.tag">{{busRoute.title}}</option>
                     </template>
@@ -60,8 +60,8 @@
         
         <!-- For Displaying Direction Data-->
         <div class="container-fluid" id="directionContainer">
-            <!-- Hiding the table if there is no bus data -->
-            <template> <!--v-if="getDirectionsData.length > 0" add later-->
+            <!-- Hiding the table if there is no bus data-->
+            <template v-if="Departure">
                 <span class="tableHeader">Saved Trips</span> 
                 <table id="directionTable">
                     <tr>
@@ -70,8 +70,8 @@
                         <th>Duration</th>
                         <th>Steps</th>
                     </tr>
-                    <template v-for="direction in getDirectionsData">
-                        <direction-list-item :key="direction" :direction="direction"></direction-list-item>
+                    <template>
+                        <direction-list-item></direction-list-item>
                     </template>
                 </table>        
             </template>
@@ -86,13 +86,14 @@ import BusListItem from './BusListItem.vue'
 import DirectionListItem from './DirectionListItem.vue'
 import { mapState } from 'vuex'
 import { mapGetters } from 'vuex'
+import { mapMutations } from 'vuex'
 
 export default{
     name: 'List',
     components:{
         BusListItem,
         DirectionListItem
-    },
+    },/*
     data(){
         return {
             selectedRoute : '',
@@ -102,32 +103,37 @@ export default{
             busData: [], 
             noResultsError: ''
         }
-    },
+    },*/
     computed: {
-        //...mapState([
-        //    'directionData'
-        //]),
-        ...mapGetters([
-            'getDirectionsData',
-            'getDirectionDetails'
-        ])
+        getbusStops:{
+            get(){
+                return this.$store.state.busTag
+            },
+            set(val){
+                this.$store.commit('set_busStops', val)
+            }
+        },
+        ...mapState([
+            "selectedRoute",
+            "busTag",
+            "busRouteOptions",
+            "busStopOptions",
+            "busData",
+            "noResultsError",
+            "Departure"
+        ]),
     },
     methods: {
-        getBusRoutes: function(){
-            axios.get('http://webservices.nextbus.com/service/publicJSONFeed?command=routeList&a=ttc')
-            .then(resp => {
-                let routeList = resp.data.route
-                this.busRouteOptions = routeList;
-                this.getBusStops();
-            })
-            .catch((error) => {
-                console.warn(error)
-            })
-        },
-        getBusStops: function(){    
+        ...mapGetters([]),
+        ...mapMutations([
+            "set_busRoutes",
+            "set_busStops"
+        ]),
+        getBusStops(e){    
             if(!this.busTag){
                 return
             } 
+            this.$store.commit('set_busStops', e.target.value)
             let stopListURL = 'http://webservices.nextbus.com/service/publicJSONFeed?command=routeConfig&a=ttc&r='+this.busTag;
             axios.get(stopListURL)
             .then(resp => {
@@ -168,7 +174,7 @@ export default{
                 } 
                 else if (returnedBusSchedule.direction){
                     let busSaved = Object.keys(this.busData);
-                    let vm = this;
+                    let thisComponent = this;
                     //Show up to 3 bus information. If there is more than three remove the first and add the latest
                     if(busSaved.length < 3) {
                         this.noResultsError = '';
@@ -197,11 +203,10 @@ export default{
                 stopName : returnedBusSchedule.stopTitle,
                 direction : returnedBusSchedule.direction.title.split(" ")[0],
                 timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
-                uniqueKey: busKey
             }
             self.$set(
                 this.busData, 
-                busKey,
+                "busKey",
                 busInfo
             )
             this.$cookies.isKey(busKey) ?
@@ -234,11 +239,8 @@ export default{
     created(){
     },
     mounted(){
-        this.getBusRoutes();
+        this.set_busRoutes();
         this.getUserPreferences();
-        //this.$root.$on('processDirection', directionInfo => {
-        //    this.setDirection(directionInfo)
-        //})
     }
 }
 

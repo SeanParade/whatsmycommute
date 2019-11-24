@@ -13,18 +13,16 @@
     </tr>
 </template>
 <script>
+    import { mapState } from 'vuex'
     export default{
         name: 'direction-list-item',
-        props:{
-            direction: Object,
-        },
-        data(){
-            return {
-                Arrival : this.direction.arrival.text,
-                Departure : this.direction.departure.text,
-                Duration : this.direction.duration.text,
-                Steps : this.direction.steps
-            }
+        computed: {
+            ...mapState([
+                'Arrival',
+                'Departure',
+                'Duration',
+                'Steps'
+            ])
         },
         filters: {
             // If the step involves transit show line name, departure stop, and arrival stop
