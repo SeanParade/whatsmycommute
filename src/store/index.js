@@ -62,15 +62,6 @@ export default new Vuex.Store({
             console.warn(error)
         })
     },
-    set_direction: (state) => {
-      let directionCookies = Vue.cookies.get("direction")
-      if(directionCookies) {
-        state.startLocation = directionCookies.origin
-        state.endLocation = directionCookies.destination
-      }
-      //Get Services to Calculate and Retrieve Data
-      
-    },
     set_busStops: (state, busTag) => {
       state.busTag = busTag;
       if(!state.busTag){
@@ -170,6 +161,7 @@ export default new Vuex.Store({
   actions: {
     set_Origin ({ commit }){
     },
+    /*
     getCookieData ({ commit }){
       let cookieKeys = Vue.cookies.keys();
       console.log(cookieKeys)
@@ -187,7 +179,7 @@ export default new Vuex.Store({
             }
         }
       }
-    }
+    }*/
   },
   modules: {}
 });

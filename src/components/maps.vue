@@ -126,7 +126,9 @@
                     )
                 },
                 loadSavedDirections: function(){
-                    //How to make sure directions service is available here? 
+                    //How to make sure directions service is available here?
+                    //I get route is undefined because directionsService
+                    //Is probably not available when this function gets called
                     let savedStartLoc = $cookies.get("direction").origin;
                     let savedDestination = $cookies.get("direction").destination;
                     directionsService.route(

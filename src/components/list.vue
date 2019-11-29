@@ -129,13 +129,9 @@ export default{
             //Called when user clicks on Get Bus Info button. Retrieves bus information. 
             "set_busData"
         ]),
-        ...mapActions([
-            "getCookieData"
-        ])
     },
     mounted(){
         this.set_busRoutes();
-        this.getCookieData();
     }
 }
 
