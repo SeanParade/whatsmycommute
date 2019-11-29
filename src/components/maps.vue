@@ -48,6 +48,13 @@
 <script>
         import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
         let mapComponent, map, directionsService, directionsRenderer
+        
+        let resolveGmapsPromise, rejectGmapsPromise;
+        const gmapsPromise = new Promise((resolve, reject) => {
+            resolveGmapsPromise = resolve;
+            rejectGmapsPromise = reject;
+        })
+
         //Callback from Google Map Script
         window.initMap = function(){
             let myOptions = { 
@@ -63,7 +70,7 @@
             directionsRenderer = new google.maps.DirectionsRenderer({
                 map: map
             });
-            mapComponent.gmapsLoaded = true;
+            resolveGmapsPromise = true;
         }
         export default {
             name: "maps",
@@ -71,7 +78,6 @@
                 return {
                     startLocation : '',
                     destination: '',
-                    gmapsLoaded: false,
                 }
             },
             watch: {
@@ -92,20 +98,29 @@
                     let mapScript = document.createElement('script');
                     mapScript.async = true;
                     mapScript.defer = true;
-                    mapScript.sensor = false
+                    mapScript.sensor = false;
+                    mapScript.onerror = rejectGmapsPromise;
                     mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
                     document.body.append(mapScript)
                 })
             },
             mounted() {
-                this.wrapper();
+                async function scriptLoader(){
+                    try{
+                        let gmapsLoaded = await gmapsPromise;
+                        this.wrapper();
+                    }
+                    catch(e){
+                        console.log(e)
+                    }
+                }
+                scriptLoader();
             },
             methods: {
                 wrapper: function(){
                     if($cookies.get("direction")){
-                        //How should I wait until Google Maps Init Map finished executing?
                         this.loadSavedDirections();
-                    };
+                    }
                 },
                 getDirection: function(){
                     directionsService.route(
