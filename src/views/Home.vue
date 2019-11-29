@@ -22,7 +22,7 @@ export default {
         list,
         weather,
         maps
-    }
+    },
   }
 </script>
 <style>

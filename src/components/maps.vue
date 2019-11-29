@@ -10,7 +10,7 @@
                     </b-row>
                     <input id="start"
                         type = "text"
-                        :value="startLocation"
+                        v-model="startLocation"
                     >
                 </b-col>
                 <b-col sm="4">
@@ -18,7 +18,7 @@
                         class="my-3" 
                         variant="info"
                         id="getDirection"
-                        @click = "getRoute"
+                        @click = "getDirection"
                     >
                         Get Direction          
                     </b-button>
@@ -32,7 +32,7 @@
                 </b-row>
                 <input id="start"
                     type = "text"
-                    v-model="endLocation"
+                    v-model="destination"
                 >
             </b-row>
             <b-row id="note">
@@ -46,90 +46,120 @@
 </template>
 
 <script>
-        let mapComponent, map; //mapComponent = this after created
+        import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
+        let mapComponent, map, directionsService, directionsRenderer
+        //Callback from Google Map Script
         window.initMap = function(){
             let myOptions = { 
                 zoom: 15,
-                center:  new google.maps.LatLng(mapComponent.$store.state.lat, mapComponent.$store.state.long)
+                center: new google.maps.LatLng(
+                    parseFloat(mapComponent.$store.state.lat), 
+                    parseFloat(mapComponent.$store.state.long)
+                )
             }
-            map = new window.google.maps.Map(document.getElementById("map"), myOptions)
+            this.map = new window.google.maps.Map(document.getElementById("map"), myOptions)
+            //Create instance of Directions API
+            directionsService = new google.maps.DirectionsService();
+            directionsRenderer = new google.maps.DirectionsRenderer({
+                map: map
+            });
+            mapComponent.gmapsLoaded = true;
         }
         export default {
             name: "maps",
-            methods: { 
-            },
             data(){
-                return{
-                    startLocation : "",
-                    endLocation : "",
+                return {
+                    startLocation : '',
+                    destination: '',
+                    gmapsLoaded: false,
+                }
+            },
+            watch: {
+                startLocation: function(val){
+                    this.$store.commit('set_startLocation',val);
+                },
+                destination: function(val){
+                    this.$store.commit('set_destination',val);
                 }
             },
             created(){
                 mapComponent = this;
+                //Set geolocation information
+                navigator.geolocation.getCurrentPosition(function(position){
+                    mapComponent.$store.state.lat = position.coords.latitude;
+                    mapComponent.$store.state.long = position.coords.longitude;
+                    //Append Google Maps API 
+                    let mapScript = document.createElement('script');
+                    mapScript.async = true;
+                    mapScript.defer = true;
+                    mapScript.sensor = false
+                    mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
+                    document.body.append(mapScript)
+                })
             },
             mounted() {
-                this.setOrigin();
-                let mapScript = document.createElement('script');
-                mapScript.async = true;
-                mapScript.defer = true;
-                mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
-                this.$el.parentElement.append(mapScript)
+                this.wrapper();
             },
             methods: {
-                // Gets coordinate of current location and assigns it to origin input field
-                setOrigin: function(){
-                    navigator.geolocation.getCurrentPosition(function(position){
-                        mapComponent.$store.commit('set_coordinates',{
-                            lat: position.coords.latitude,
-                            long: position.coords.longitude 
-                        })
-                        mapComponent.startLocation = mapComponent.$store.state.lat + ',' + mapComponent.$store.state.long;
-                    })
+                wrapper: function(){
+                    if($cookies.get("direction")){
+                        //How should I wait until Google Maps Init Map finished executing?
+                        this.loadSavedDirections();
+                    };
                 },
-                getRoute: function(){
-                    //Get Services to Calculate and Retrieve Data
-                    var directionsService = new google.maps.DirectionsService();
-                    var directionsRenderer = new google.maps.DirectionsRenderer({
-                        map: map
-                    });
-                    var markerA = new google.maps.Marker({
-                        position: this.startLocation,
-                        title: "point A",
-                        label: "A",
-                        map: map
-                    })
-                    var markerB = new google.maps.Marker({
-                        position: this.endLocation,
-                        title: "point B",
-                        label: "B",
-                        map: mapComponent.$store.map
-                    })
+                getDirection: function(){
                     directionsService.route(
-                       {
-                           origin: {query: this.startLocation},
-                           destination: {query: this.endLocation},
-                           travelMode: 'TRANSIT'
-                       },
-                       function(response, status) {
-                           if(status === 'OK') {
-                               let directions = response.routes[0].legs[0]
-                               let directionsObj = {
-                                   Arrival: directions.arrival_time.text,
-                                   Departure: directions.departure_time.text,
-                                   Duration: directions.duration.text,
-                                   Steps: directions.steps
-                               }
-                               mapComponent.$store.commit("set_directionInformation",{
-                                   directionsObj
-                               })
-                               directionsRenderer.setDirections(response)
+                        {
+                            origin: {query: this.$store.state.startLocation},
+                            destination: {query: this.$store.state.destination},
+                            travelMode: 'TRANSIT'
+                        },
+                        function(response, status) {    
+                            if(status === 'OK') {
+                                let directions = response.routes[0].legs[0];
+                                mapComponent.processDirection(directions, response);
                             }
-                           else{
-                               window.alert('Directions request failed due to ' + status)
-                           }
-                       }
-                   )
-                } 
+                            else{
+                                window.alert('Directions request failed due to ' + status)
+                            }
+                        }
+                    )
+                },
+                loadSavedDirections: function(){
+                    //How to make sure directions service is available here? 
+                    let savedStartLoc = $cookies.get("direction").origin;
+                    let savedDestination = $cookies.get("direction").destination;
+                    directionsService.route(
+                        {
+                            origin: {query: savedStartLoc},
+                            destination: {query: savedDestination},
+                            travelMode: 'TRANSIT'
+                        },
+                        function(response, status) {    
+                            if(status === 'OK') {
+                                let directions = response.routes[0].legs[0];
+                                mapComponent.processDirection(directions);
+                            }
+                            else{
+                                window.alert('Directions request failed due to ' + status)
+                            }
+                        }
+                    )
+                },
+                processDirection: function(dir, response){
+                    mapComponent.$store.commit('set_Arrival',dir.arrival_time.text);
+                    mapComponent.$store.commit('set_Departure', dir.departure_time.text);
+                    mapComponent.$store.commit('set_Duration',dir.duration.text);
+                    mapComponent.$store.commit('set_Steps',dir.steps);  
+                    directionsRenderer.setDirections(response);
+                    $cookies.set(
+                        "direction",
+                        {
+                            origin: mapComponent.$store.state.startLocation,
+                            destination: mapComponent.$store.state.destination
+                        }
+                    )
+                }
             }
         }
 </script>
