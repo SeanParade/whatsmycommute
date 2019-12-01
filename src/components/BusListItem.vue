@@ -24,13 +24,14 @@
                 timeUntil : this.scheduleData.timeUntil
             }
         },
-
+        mounted(){
+            console.log(this.scheduleData)
+        },
         computed: {
             renderOrder: function(){
                 return null
             }
         },
-
         filters: {
             formatDisplayTime: function(time){
                 var timeValue = parseInt(time);

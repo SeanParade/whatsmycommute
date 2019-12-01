@@ -5,11 +5,7 @@
                 <span class="optionLabels">
                     Bus Route: 
                 </span>
-                <!--busRoute.tag is like the id for bus routes-->
-                <!--v-model uses this tag to get a list of bus stops in the selected route-->
-
-                <!--use data and watch instead-->
-                <select id="busRouteList" v-model="getbusStops">
+                <select id="busRouteList" v-model="bus">
                     <template v-for="(busRoute,index) in busRouteOptions"> 
                         <option :key="index" :value="busRoute.tag">{{busRoute.title}}</option>
                     </template>
@@ -19,11 +15,7 @@
                 <span class="optionLabels">
                     Bus Stops: 
                 </span>
-                <!--V-model sets state.stopTag = busStop.tag which is like the id for bus stops-->
-                <!--We need a combination of bus route tag and bus stop tag to get bus info later-->
-
-                <!--use data and watch instead-->
-                <select id="busStopList" v-model="getStopId">
+                <select id="busStopList" v-model="stop">
                     <template v-for="(busStop,index) in busStopOptions">
                         <option :key="index" :value="busStop.tag">{{busStop.title}}</option>
                     </template>
@@ -33,7 +25,7 @@
                 <b-button class="my-4" 
                     variant="info" 
                     id="getBusButton" 
-                    @click="set_busData">
+                    @click="setBusData">
                         Get Bus Information
                 </b-button>
             </div>
@@ -55,8 +47,8 @@
                         <th>Direction</th>
                         <th>Time Until</th>
                     </tr>
-                    <template v-for="busSchedule in Object.values(busData)">
-                        <bus-list-item :key="busSchedule.uniquekey" :scheduleData="busSchedule"></bus-list-item>
+                    <template v-for="busSchedule in busData">
+                        <bus-list-item :key="busSchedule.id" :scheduleData="busSchedule"></bus-list-item>
                     </template>
                 </table>        
             </template>
@@ -95,21 +87,29 @@ export default{
         BusListItem,
         DirectionListItem
     },
-    computed: {
-        getbusStops:{
-            get(){
-                return this.busTag
-            },
-            set(val){
-                this.$store.commit("set_busStops", val)
-            }
+    data(){
+        return{
+            bus: '',
+            stop: ''
+        }
+    },
+    watch: {
+        bus: function(val){
+            //Get list of bus stops in selected route
+            this.$store.commit('set_busStops', val)
         },
+        stop: function(val){
+            this.$store.commit('set_stopId', val)
+        }
+    },
+    computed: {
         getStopId:{
             get(){
                 return this.stopTag
             },
             set(val){
                 this.$store.commit("set_stopId",val)
+
             }
         },
         ...mapState([
@@ -126,12 +126,66 @@ export default{
         ...mapMutations([
             //Called on mount to render list of bus routes
             "set_busRoutes",
-            //Called when user clicks on Get Bus Info button. Retrieves bus information. 
-            "set_busData"
         ]),
+        wrapper: function(){
+            if(this.$cookies.get("saved_buses")){
+                //this.loadBusinCookie();
+            }
+        },
+        setBusData: function(){
+            let predicitionRoute = 'http://webservices.nextbus.com/service/publicJSONFeed?command=predictions&a=ttc&r='+this.busTag+'&s='+this.stopTag+'&useShortTitles=true';
+            axios.get(predicitionRoute)
+            .then(resp => { 
+                let returnedBusSchedule = resp.data.predictions;
+                // If the service returns no predicitons
+                if(returnedBusSchedule.dirTitleBecauseNoPredictions){
+                    state.noResultsError = returnedBusSchedule.dirTitleBecauseNoPredictions + 
+                    " is either out of service or does not go in this direction"
+                } 
+                else if (returnedBusSchedule.direction){
+                    console.log(returnedBusSchedule.direction)
+                    //Create unique Id for selected bus route + stop combination
+                    let id = returnedBusSchedule.routeTitle + ' ' + returnedBusSchedule.stopTitle;
+                    //Format returned bus schedule data
+                    let busInfo = {
+                        id: id,
+                        routeName : returnedBusSchedule.routeTitle,
+                        stopName : returnedBusSchedule.stopTitle,
+                        direction : returnedBusSchedule.direction.title.split(" ")[0],
+                        timeUntil : returnedBusSchedule.direction.prediction.map( t => t.minutes),
+                        busTag: this.busTag,
+                        stopTag: this.stopTag,
+                    }
+                    // Get how many buses are currently stored in busData Object
+                    let busSaved = this.busData.length;
+                    console.log('busData length = ' + busSaved)
+                    //Store and Show Max 3 Bus Data with no duplicates
+                    if(busSaved < 3 && !this.busData.some(el => el.id == id)) {
+                        //this.noResultsError = '';
+                        this.busData.push(busInfo)
+                        this.$cookies.set(
+                            "saved_buses",
+                            this.busData
+                        )
+                    }
+                    if(busSaved >= 3 && !this.busData.some(el => el.id == id)){
+                        this.busData.shift();
+                        this.busData.push(busInfo)
+                        this.$cookies.set(
+                            "saved_buses",
+                            this.busData
+                        )
+                    }
+                };
+            })
+            .catch((error) => {
+                console.warn(error)
+            })
+        }
     },
     mounted(){
         this.set_busRoutes();
+        this.wrapper();
     }
 }
 
