@@ -184,7 +184,7 @@
                     this.$store.commit('set_Duration', dir.duration.text);
                     this.$store.commit('set_Steps', dir.steps); 
                 },
-                processDirection: function(dir, response){
+                renderDirections: function(dir, response){
                     this.storeDirections(dir);
                     // *SP: checking against response so that "processDirections"
                     // has some context as to what it needs to do
