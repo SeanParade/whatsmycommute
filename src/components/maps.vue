@@ -77,15 +77,23 @@
                 navigator.geolocation.getCurrentPosition(function(position){
                     $this.$store.state.lat = position.coords.latitude;
                     $this.$store.state.long = position.coords.longitude;
-                    //Append Google Maps API 
-                    let mapScript = document.createElement('script');
-                    mapScript.async = true;
-                    mapScript.defer = true;
-                    mapScript.sensor = false;
-                    //*SP: I've removed the promise logic so this should just call a log statement.
-                    //mapScript.onerror = rejectGmapsPromise;
-                    mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
-                    document.body.append(mapScript)
+
+                    let scriptExists = document.getElementById("gmapScript");
+
+                    if (!scriptExists) {
+                        //Append Google Maps API 
+                        let mapScript = document.createElement('script');
+                        mapScript.async = true;
+                        mapScript.defer = true;
+                        mapScript.id = "gmapScript";
+                        mapScript.sensor = false;
+                        //*SP: I've removed the promise logic so this should just call a log statement.
+                        //mapScript.onerror = rejectGmapsPromise;
+                        mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
+                        document.body.append(mapScript)
+                    } else {
+                        window.initMap()
+                    }
                 })
             },
             mounted() {
