@@ -109,7 +109,6 @@ export default{
             },
             set(val){
                 this.$store.commit("set_stopId",val)
-
             }
         },
         ...mapState([
@@ -127,6 +126,11 @@ export default{
             //Called on mount to render list of bus routes
             "set_busRoutes",
         ]),
+        //*SP: When I said "wrapper function", I was just describing a function
+        // that's sole purpose was calling other functions for a specific use case
+        // so that it enables you to write functions that "only do one thing".
+        // You should always name a function for the thing it's trying to do.
+        // This should be called something like "loadSavedBusRoutes".
         wrapper: function(){
             if(this.$cookies.get("saved_buses")){
                 //this.loadBusinCookie();

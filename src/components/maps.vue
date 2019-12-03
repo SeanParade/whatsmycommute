@@ -47,136 +47,156 @@
 
 <script>
         import { mapState, mapGetters, mapMutations, mapActions } from 'vuex'
-        let mapComponent, map, directionsService, directionsRenderer
-        
-        let resolveGmapsPromise, rejectGmapsPromise;
-        const gmapsPromise = new Promise((resolve, reject) => {
-            resolveGmapsPromise = resolve;
-            rejectGmapsPromise = reject;
-        })
+        let map, directionsService, directionsRenderer
 
-        //Callback from Google Map Script
-        window.initMap = function(){
-            let myOptions = { 
-                zoom: 15,
-                center: new google.maps.LatLng(
-                    parseFloat(mapComponent.$store.state.lat), 
-                    parseFloat(mapComponent.$store.state.long)
-                )
-            }
-            this.map = new window.google.maps.Map(document.getElementById("map"), myOptions)
-            //Create instance of Directions API
-            directionsService = new google.maps.DirectionsService();
-            directionsRenderer = new google.maps.DirectionsRenderer({
-                map: map
-            });
-            resolveGmapsPromise = true;
-        }
-        export default {
+        // *SP: Tied this to a variable and exported that as the default
+        // so that we have a reference to the component object for the 
+        // outer code. All the inner references that you had to "mapComponent"
+        // I've changed to "this" since it doesn't need the reference to the var.
+        let mapComponent = {
             name: "maps",
             data(){
                 return {
-                    startLocation : '',
-                    destination: '',
+                    startLocation : this.$store.state.startLocation,
+                    destination: this.$store.state.destination,
+                    //*SP: Using this data prop as a sentinel value for when directionService 
+                    // is available
+                    directionServiceLoaded: false,
                 }
             },
             watch: {
-                startLocation: function(val){
-                    this.$store.commit('set_startLocation',val);
-                },
-                destination: function(val){
-                    this.$store.commit('set_destination',val);
+                //*SP: We want to watch for a change on this since when it gets loaded
+                // we want to check if a user has save directions
+                directionServiceLoaded: function() {
+                    this.loadSavedDirections()
                 }
             },
             created(){
-                mapComponent = this;
+                let $this = this
                 //Set geolocation information
                 navigator.geolocation.getCurrentPosition(function(position){
-                    mapComponent.$store.state.lat = position.coords.latitude;
-                    mapComponent.$store.state.long = position.coords.longitude;
+                    $this.$store.state.lat = position.coords.latitude;
+                    $this.$store.state.long = position.coords.longitude;
                     //Append Google Maps API 
                     let mapScript = document.createElement('script');
                     mapScript.async = true;
                     mapScript.defer = true;
                     mapScript.sensor = false;
-                    mapScript.onerror = rejectGmapsPromise;
+                    //*SP: I've removed the promise logic so this should just call a log statement.
+                    //mapScript.onerror = rejectGmapsPromise;
                     mapScript.src = 'https://maps.googleapis.com/maps/api/js?key=AIzaSyDTFd6UTZ6sUOcSRLrRCPCEOAYmfrEz-Zg&callback=initMap&libraries=places';
                     document.body.append(mapScript)
                 })
             },
             mounted() {
-                async function scriptLoader(){
-                    try{
-                        let gmapsLoaded = await gmapsPromise;
-                        this.wrapper();
+                //Callback from Google Map Script
+
+                //*SP: I've moved initMap down to the mounted hook since it has
+                // data reliant on the component store which doesn't exist until mount.
+                let $this = this;
+                window.initMap = function(){
+                    let myOptions = { 
+                        zoom: 15,
+                        center: new google.maps.LatLng(
+                            parseFloat($this.$store.state.lat), 
+                            parseFloat($this.$store.state.long)
+                        )
                     }
-                    catch(e){
-                        console.log(e)
-                    }
+                    this.map = new window.google.maps.Map(document.getElementById("map"), myOptions)
+                    //Create instance of Directions API
+                    directionsService = new google.maps.DirectionsService();
+                    //*SP: This service is now loaded so we should notify the component
+                    // by setting our sentinal to true.
+                    $this.directionServiceLoaded = true;
+
+                    directionsRenderer = new google.maps.DirectionsRenderer({
+                        map: map
+                    });
                 }
-                scriptLoader();
+            },
+            computed: {
+                // *SP: Adding this as a computed prop since it's used as one
+                storedDirectionQuery: ()=> {
+                    // *SP: Checking if both props empty
+                    /////////////
+                    // Sidenote: this is just a fancy way of doing it -- I'm turning the object into an array
+                    // so I can call reduce on it and then I'm checking if the sum of the previous(a) and the next(b)
+                    // equate to true by calling not not (!!) on it. First ! turns the string into an 
+                    // expression (!"value" is false) and the second ! turns it into the non-negative value (since "value" is true)  
+                    let hasQueries = Object.values($cookies.get("direction")).reduce((a,b) => (!!a || !!b));
+                    return hasQueries ? $cookies.get("direction") : false
+                    },
             },
             methods: {
-                wrapper: function(){
-                    if($cookies.get("direction")){
-                        console.log("loading saved directions")
-                        this.loadSavedDirections();
-                    }
-                },
                 getDirection: function(){
-                    directionsService.route(
-                        {
-                            origin: {query: this.$store.state.startLocation},
-                            destination: {query: this.$store.state.destination},
-                            travelMode: 'TRANSIT'
-                        },
-                        function(response, status) {    
-                            if(status === 'OK') {
-                                let directions = response.routes[0].legs[0];
-                                mapComponent.processDirection(directions, response);
+                    let $this = this
+                    this.storeTripQuery()
+                    //*SP: Only allowing this to get called once the service is loaded
+                    this.directionServiceLoaded 
+                        ? directionsService.route(
+                            {
+                                origin: {query: this.$store.state.startLocation},
+                                destination: {query: this.$store.state.destination},
+                                travelMode: 'TRANSIT'
+                            },
+                            function(response, status) {    
+                                if(status === 'OK') {
+                                    let directions = response.routes[0].legs[0];
+                                    $this.renderDirections(directions, response);
+                                }
+                                else{
+                                    window.alert('Directions request failed due to ' + status)
+                                }
                             }
-                            else{
-                                window.alert('Directions request failed due to ' + status)
-                            }
-                        }
-                    )
+                        )
+                        : console.log("Still waiting for the Google Maps Direction service to load")
                 },
                 loadSavedDirections: function(){
-                    let savedStartLoc = $cookies.get("direction").origin;
-                    let savedDestination = $cookies.get("direction").destination;
-                    directionsService.route(
-                        {
-                            origin: {query: savedStartLoc},
-                            destination: {query: savedDestination},
-                            travelMode: 'TRANSIT'
-                        },
-                        function(response, status) {    
-                            if(status === 'OK') {
-                                let directions = response.routes[0].legs[0];
-                                mapComponent.processDirection(directions);
-                            }
-                            else{
-                                window.alert('Directions request failed due to ' + status)
-                            }
-                        }
-                    )
+                    // *SP: if theres a direction cookie, use that data in the component.
+                    // getDirections will store them again so that they will reload.
+                    if(this.storedDirectionQuery) {
+                        this.startLocation = this.storedDirectionQuery.origin
+                        this.destination = this.storedDirectionQuery.destination
+                        this.getDirection()
+                    } else {
+                        console.log("No saved trips found.")
+                    }  
                 },
-                processDirection: function(dir, response){
-                    mapComponent.$store.commit('set_Arrival',dir.arrival_time.text);
-                    mapComponent.$store.commit('set_Departure', dir.departure_time.text);
-                    mapComponent.$store.commit('set_Duration',dir.duration.text);
-                    mapComponent.$store.commit('set_Steps',dir.steps);  
-                    directionsRenderer.setDirections(response);
-                    $cookies.set(
+                // *SP: Making this function so that we can easily update when
+                // we should store a trip query
+                storeTripQuery: function() {
+                    this.$store.commit('set_startLocation', this.startLocation)
+                    this.$store.commit('set_destination', this.destination);
+                    
+                    this.$cookies.set(
                         "direction",
                         {
-                            origin: mapComponent.$store.state.startLocation,
-                            destination: mapComponent.$store.state.destination
+                            origin: this.startLocation,
+                            destination: this.destination,
                         }
-                    )            
+                    ) 
+                    
+                },
+                // *SP: Seperating out this logic so processDirections only does one thing
+                storeDirections: function(dir) {
+                    this.$store.commit('set_Arrival', dir.arrival_time.text);
+                    this.$store.commit('set_Departure', dir.departure_time.text);
+                    this.$store.commit('set_Duration', dir.duration.text);
+                    this.$store.commit('set_Steps', dir.steps); 
+                },
+                processDirection: function(dir, response){
+                    this.storeDirections(dir);
+                    // *SP: checking against response so that "processDirections"
+                    // has some context as to what it needs to do
+                    if(response){
+                        directionsRenderer.setDirections(response);
+                    }           
                 }
             }
         }
+        // *SP: Script modules require a default export so we've made that the 
+        // component var above.
+        export default mapComponent;
 </script>
 <style>
   #map {
